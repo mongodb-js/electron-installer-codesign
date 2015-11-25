@@ -1,0 +1,16 @@
+Usage: electron-installer-codesign <path/to/.app> <Identity>
+
+Sign your electron apps on OSX.
+
+Usage:
+  electron-installer-codesign ./FooBar-darwin-x64/FooBar.app "Developer ID Application: Lucas Hrabovsky"
+
+Args:
+  <appPath>            Path to your `.app` directory.
+  <identity>           Keychain query of a Code Signing Identity obtained from Apple.
+
+Options:
+  --debug              Enable debug messages.
+  --overwrite          Overwrite any existing DMG.
+  -h --help            Show this screen.
+  --version            Show version.
