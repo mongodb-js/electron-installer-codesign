@@ -22,8 +22,11 @@
   },
   "dependencies": {
     "async": "^1.5.0",
+    "chalk": "^1.1.1",
     "debug": "^2.2.0",
     "del": "^2.1.0",
+    "electron-installer-run": "^0.1.0",
+    "figures": "^1.4.0",
     "glob": "^6.0.1",
     "minimist": "^1.2.0"
   },

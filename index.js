@@ -2,26 +2,31 @@
 var fs = require('fs');
 var path = require('path');
 var del = require('del');
-var spawn = require('child_process').spawn;
-var exec = require('child_process').exec;
+var run = require('electron-installer-run');
 var glob = require('glob');
 var async = require('async');
-var format = require('util').format;
+var chalk = require('chalk');
+var figures = require('figures');
 var debug = require('debug')('electron-installer-codesign');
 
 function checkAppExists(opts, fn) {
-  debug('checking appPath exists...', opts.appPath);
+  debug('checking appPath `%s` exists...', opts.appPath);
   fs.exists(opts.appPath, function(exists) {
     if (!exists) {
+      debug('appPath `%s` does not exist!', opts.appPath);
       return fn(new Error(opts.appPath + ' does not exist.'));
     }
+    debug('appPath exists');
     fn();
   });
 }
 
 // Clean up ".cstemp" files from previous attempts
 function cleanup(opts, fn) {
-  del(opts.appPath + '/*.cstemp', fn);
+  debug('running cleanup');
+  del([opts.appPath + '/*.cstemp']).then(function() {
+    fn();
+  });
 }
 
 function runCodesign(src, opts, fn) {
@@ -33,17 +38,14 @@ function runCodesign(src, opts, fn) {
     '--force',
     src
   ];
-  var child = spawn('codesign', args);
-  debug('running `codesign %s`', args.join(' '));
-  child.stdout.pipe(process.stdout);
-  child.stderr.pipe(process.stderr);
-  child.on('exit', function(code) {
-    if (code === 0) {
-      return fn(null, src);
+
+  run('codesign', args, function(err) {
+    if (err) {
+      fn(new Error('codesign failed ' + path.basename(src)
+        + '. See output above for more details.'));
+      return;
     }
-    console.error('codesign failed on `%s`', path.basename(src));
-    return fn(new Error('codesign failed ' + path.basename(src)
-      + '. See output above for more details.'));
+    fn(null, src);
   });
 }
 
@@ -72,18 +74,43 @@ function codesign(pattern, opts, fn) {
   });
 }
 
-function verify(src, cb) {
+function verify(src, fn) {
   debug('verifying signature on `%s`...', src);
-  var cmd = format('codesign --verify -vvv "%s"', src);
-  exec(cmd, function(err, stdout, stderr) {
+
+  var args = [
+    '--verify',
+    '-vvv',
+    src
+  ];
+  run('codesign', args, function(err) {
     if (err) {
-      console.error('codesign --verify failed on `%s`', src, err);
-      console.error('  cmd: %s', cmd);
-      console.error('  stdout: %s', stdout);
-      console.error('  stderr: %s', stderr);
-      return cb(err);
+      return fn(err);
     }
-    cb(null, src);
+    fn(null, src);
+  });
+}
+
+/**
+ * @param {String} commonName
+ * @param {Function} fn - Callback.
+ */
+function isIdentityAvailable(commonName, fn) {
+  run('certtool', ['y'], function(err, output) {
+    if (err) {
+      debug('Failed to list certificates.');
+      fn(null, false);
+      return;
+    }
+    if (output.indexOf(commonName) === -1) {
+      debug('Signing identity `%s` not detected.',
+        commonName);
+      fn(null, false);
+      return;
+    }
+
+    debug('The signing identity `%s` is available!', commonName);
+
+    fn(null, true);
   });
 }
 
@@ -96,4 +123,31 @@ module.exports = function(opts, done) {
     codesign.bind(null, opts.appPath, opts),
     verify.bind(null, opts.appPath)
   ], done);
+};
+
+module.exports.isIdentityAvailable = isIdentityAvailable;
+module.exports.codesign = codesign;
+module.exports.verify = verify;
+
+module.exports.printWarning = function() {
+  console.error(chalk.yellow.bold(figures.warning),
+    ' User confusion ahead!');
+
+  console.error(chalk.gray(
+    '  The default preferences for OSX Gatekeeper will not',
+    'allow users to run unsigned applications.'));
+
+  console.error(chalk.gray(
+    '  However, we\'re going to continue building',
+    'the app and an installer because you\'re most likely'));
+
+  console.error(chalk.gray(
+    '  a developer trying to test',
+    'the app\'s installation process.'));
+
+  console.error(chalk.gray(
+    '  For more information on OSX Gatekeeper and how to change your',
+    'system preferences to run unsigned applications,'));
+  console.error(chalk.gray('  please see',
+    'https://support.apple.com/en-us/HT202491'));
 };
