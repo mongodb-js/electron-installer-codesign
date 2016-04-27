@@ -42,7 +42,7 @@ Options:
 var codesign = require('electron-installer-codesign')
 codesign(opts, function done (err, filePaths) { })
 ```
-#### createDMG(opts, callback)
+#### codesign(opts, callback)
 
 ##### opts
 **Required**
