@@ -49,7 +49,45 @@ function runCodesign(src, opts, fn) {
   });
 }
 
-function codesign(pattern, opts, fn) {
+function _signAll(files, opts, fn) {
+  async.parallel(files.map(function(src) {
+    return function(cb) {
+      debug('signing %s...', path.basename(src));
+      runCodesign(src, opts, cb);
+    };
+  }), function(_err, _files) {
+    if (_err) {
+      return fn(_err);
+    }
+    debug('%d files signed successfully!', _files.length);
+    fn(null, _files);
+  });
+}
+
+function _filterFiles(files, fn) {
+  async.parallel(files.map(function(file) {
+    return function(cb) {
+      fs.lstat(file, function(err, stat) {
+        if (err) {
+          return cb(err);
+        }
+        if (!stat.isFile() || stat.isSymbolicLink()) {
+          return cb(null, null);
+        }
+        cb(null, file);
+      });
+    };
+  }), function(_err, _files) {
+    if (_err) {
+      return fn(_err);
+    }
+    fn(null, _files.filter(function(f) {
+      return f !== null;
+    }));
+  });
+}
+
+function _collectFiles(pattern, opts, fn) {
   glob.glob(pattern, function(err, files) {
     if (err) {
       return fn(err);
@@ -59,19 +97,22 @@ function codesign(pattern, opts, fn) {
       return fn(new Error('No files found for '
         + opts.appPath + '/' + pattern));
     }
-    async.parallel(files.map(function(src) {
-      return function(cb) {
-        debug('signing %s...', path.basename(src));
-        runCodesign(src, opts, cb);
-      };
-    }), function(_err, _files) {
-      if (_err) {
-        return fn(_err);
-      }
-      debug('%d files signed successfully!', _files.length);
-      fn(null, _files);
-    });
+    fn(null, files);
   });
+}
+
+function codesign(pattern, opts, fn) {
+  async.waterfall([
+    function(cb) {
+      _collectFiles(pattern, opts, cb);
+    },
+    function(files, cb) {
+      _filterFiles(files, cb);
+    },
+    function(files, cb) {
+      _signAll(files, opts, cb);
+    }
+  ], fn);
 }
 
 function verify(src, fn) {
