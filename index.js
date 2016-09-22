@@ -71,7 +71,11 @@ function _filterFiles(files, fn) {
         if (err) {
           return cb(err);
         }
-        if (!stat.isFile() || stat.isSymbolicLink()) {
+        if (!stat.isFile()) {
+          return cb(null, null);
+        }
+
+        if (stat.isSymbolicLink() && file.indexOf('Contents/MacOS') > -1) {
           return cb(null, null);
         }
         cb(null, file);
