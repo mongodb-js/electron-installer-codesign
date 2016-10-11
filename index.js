@@ -74,7 +74,13 @@ function _filterFiles(files, fn) {
         if (!stat.isFile()) {
           return cb(null, null);
         }
-
+        /**
+         * @durran: Allow only the Electron symlink to not get skipped.
+         * @see: COMPASS-101.
+         */
+        if (stat.isSymbolicLink() && file.indexOf('Electron') > -1) {
+          return cb(null, file);
+        }
         if (stat.isSymbolicLink() && file.indexOf('Contents/MacOS') > -1) {
           return cb(null, null);
         }
