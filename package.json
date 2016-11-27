@@ -21,19 +21,19 @@
     "electron-installer-codesign": "bin/electron-installer-codesign.js"
   },
   "dependencies": {
-    "async": "^1.5.0",
+    "async": "^2.1.2",
     "chalk": "^1.1.1",
     "debug": "^2.2.0",
     "del": "^2.1.0",
     "electron-installer-run": "^0.1.0",
-    "figures": "^1.4.0",
-    "glob": "^6.0.1",
+    "figures": "^2.0.0",
+    "glob": "^7.1.1",
     "minimist": "^1.2.0"
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "eslint-config-mongodb-js": "^1.0.6",
-    "mocha": "^2.3.4",
+    "eslint-config-mongodb-js": "^2.2.0",
+    "mocha": "^3.1.2",
     "mongodb-js-fmt": "0.0.3",
     "mongodb-js-precommit": "^0.2.8",
     "pre-commit": "^1.1.2"
