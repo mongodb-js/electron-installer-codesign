@@ -173,6 +173,7 @@ module.exports = function(opts, done) {
     cleanup.bind(null, opts),
     codesign.bind(null, opts.appPath + '/Contents/Frameworks/*', opts),
     codesign.bind(null, opts.appPath + '/Contents/MacOS/*', opts),
+    codesign.bind(null, opts.appPath + '/Contents/Resources/*', opts),
     codesign.bind(null, opts.appPath, opts),
     verify.bind(null, opts.appPath)
   ], done);
