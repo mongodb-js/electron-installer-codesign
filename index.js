@@ -7,6 +7,7 @@ var glob = require('glob');
 var async = require('async');
 var chalk = require('chalk');
 var figures = require('figures');
+var sign = require('electron-osx-sign');
 var debug = require('debug')('electron-installer-codesign');
 
 function checkAppExists(opts, fn) {
@@ -30,25 +31,18 @@ function cleanup(opts, fn) {
 }
 
 function runCodesign(src, opts, fn) {
-  var args = [
-    '-s',
-    opts.identity,
-    '-vvv',
-    '--deep',
-    '--force',
-    '--options',
-    'runtime',
-    src
-  ];
-
-  run('codesign', args, function(err) {
+  sign({
+    app: src,
+    hardenedRuntime: true,
+    identity: opts.identity
+  }, (err) => {
     if (err) {
       fn(new Error('codesign failed ' + path.basename(src)
         + '. See output above for more details.'));
       return;
     }
     fn(null, src);
-  });
+  })
 }
 
 function _signAll(files, opts, fn) {
@@ -66,81 +60,12 @@ function _signAll(files, opts, fn) {
   });
 }
 
-function _filterFiles(files, fn) {
-  async.parallel(files.map(function(file) {
-    return function(cb) {
-      fs.lstat(file, function(err, stat) {
-        if (err) {
-          return cb(err);
-        }
-        if (!stat.isFile()) {
-          return cb(null, null);
-        }
-        /**
-         * @durran: Allow only the Electron symlink to not get skipped.
-         * @see: COMPASS-101.
-         */
-        if (stat.isSymbolicLink() && file.indexOf('Electron') > -1) {
-          return cb(null, file);
-        }
-        if (stat.isSymbolicLink() && file.indexOf('Contents/MacOS') > -1) {
-          return cb(null, null);
-        }
-        cb(null, file);
-      });
-    };
-  }), function(_err, _files) {
-    if (_err) {
-      return fn(_err);
-    }
-    fn(null, _files.filter(function(f) {
-      return f !== null;
-    }));
-  });
-}
-
-function _collectFiles(pattern, opts, fn) {
-  glob.glob(pattern, function(err, files) {
-    if (err) {
-      return fn(err);
-    }
-
-    if (files.length === 0) {
-      return fn(new Error('No files found for '
-        + opts.appPath + '/' + pattern));
-    }
-    fn(null, files);
-  });
-}
-
 function codesign(pattern, opts, fn) {
   async.waterfall([
-    function(cb) {
-      _collectFiles(pattern, opts, cb);
-    },
-    function(files, cb) {
-      _filterFiles(files, cb);
-    },
     function(files, cb) {
       _signAll(files, opts, cb);
     }
   ], fn);
-}
-
-function verify(src, fn) {
-  debug('verifying signature on `%s`...', src);
-
-  var args = [
-    '--verify',
-    '-vvv',
-    src
-  ];
-  run('codesign', args, function(err) {
-    if (err) {
-      return fn(err);
-    }
-    fn(null, src);
-  });
 }
 
 /**
@@ -171,17 +96,12 @@ module.exports = function(opts, done) {
   async.series([
     checkAppExists.bind(null, opts),
     cleanup.bind(null, opts),
-    codesign.bind(null, opts.appPath + '/Contents/Frameworks/*', opts),
-    codesign.bind(null, opts.appPath + '/Contents/MacOS/*', opts),
-    codesign.bind(null, opts.appPath + '/Contents/Resources/*', opts),
-    codesign.bind(null, opts.appPath, opts),
-    verify.bind(null, opts.appPath)
+    codesign.bind(null, opts.appPath, opts)
   ], done);
 };
 
 module.exports.isIdentityAvailable = isIdentityAvailable;
 module.exports.codesign = codesign;
-module.exports.verify = verify;
 
 module.exports.printWarning = function() {
   console.error(chalk.yellow.bold(figures.warning),
