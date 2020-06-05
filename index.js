@@ -36,6 +36,8 @@ function runCodesign(src, opts, fn) {
     '-vvv',
     '--deep',
     '--force',
+    '--options',
+    'runtime',
     src
   ];
 
