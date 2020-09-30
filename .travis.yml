@@ -4,12 +4,7 @@ node_js:
   - 10
   - 12
   - 14
-before_install:
-  - npm install -g npm@3
-  - npm config set loglevel error
-  - npm config -g list -l
-  - npm --version
-script: npm run-script ci
+script: npm run ci
 cache:
   directories:
     - node_modules
