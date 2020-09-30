@@ -28,7 +28,6 @@
     "electron-installer-run": "^0.1.0",
     "electron-osx-sign": "^0.4.16",
     "figures": "^2.0.0",
-    "glob": "^7.1.1",
     "minimist": "^1.2.0"
   },
   "license": "Apache-2.0",
