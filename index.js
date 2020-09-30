@@ -34,38 +34,16 @@ function runCodesign(src, opts, fn) {
   sign({
     app: src,
     hardenedRuntime: true,
-    identity: opts.identity
+    identity: opts.identity,
+    'gatekeeper-assess': false
   }, (err) => {
     if (err) {
       fn(new Error('codesign failed ' + path.basename(src)
-        + '. See output above for more details.'));
+        + ': ' + err.message));
       return;
     }
     fn(null, src);
   })
-}
-
-function _signAll(files, opts, fn) {
-  async.parallel(files.map(function(src) {
-    return function(cb) {
-      debug('signing %s...', path.basename(src));
-      runCodesign(src, opts, cb);
-    };
-  }), function(_err, _files) {
-    if (_err) {
-      return fn(_err);
-    }
-    debug('%d files signed successfully!', _files.length);
-    fn(null, _files);
-  });
-}
-
-function codesign(pattern, opts, fn) {
-  async.waterfall([
-    function(files, cb) {
-      _signAll(files, opts, cb);
-    }
-  ], fn);
 }
 
 /**
@@ -96,12 +74,12 @@ module.exports = function(opts, done) {
   async.series([
     checkAppExists.bind(null, opts),
     cleanup.bind(null, opts),
-    codesign.bind(null, opts.appPath, opts)
+    runCodesign.bind(null, opts.appPath, opts)
   ], done);
 };
 
 module.exports.isIdentityAvailable = isIdentityAvailable;
-module.exports.codesign = codesign;
+module.exports.codesign = runCodesign;
 
 module.exports.printWarning = function() {
   console.error(chalk.yellow.bold(figures.warning),
