@@ -3,7 +3,6 @@ var fs = require('fs');
 var path = require('path');
 var del = require('del');
 var run = require('electron-installer-run');
-var glob = require('glob');
 var async = require('async');
 var chalk = require('chalk');
 var figures = require('figures');
@@ -36,14 +35,14 @@ function runCodesign(src, opts, fn) {
     hardenedRuntime: true,
     identity: opts.identity,
     'gatekeeper-assess': false
-  }, (err) => {
+  }, function(err) {
     if (err) {
       fn(new Error('codesign failed ' + path.basename(src)
         + ': ' + err.message));
       return;
     }
     fn(null, src);
-  })
+  });
 }
 
 /**
