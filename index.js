@@ -30,11 +30,16 @@ function cleanup(opts, fn) {
 }
 
 function runCodesign(src, opts, fn) {
+  var entitlementsFile = opts.entitlements ||
+    path.resolve(__dirname, 'entitlements.xml');
   sign({
     app: src,
     hardenedRuntime: true,
     identity: opts.identity,
-    'gatekeeper-assess': false
+    'gatekeeper-assess': false,
+    entitlements: entitlementsFile,
+    'entitlements-inherit': entitlementsFile,
+    'entitlements-loginheler': entitlementsFile
   }, function(err) {
     if (err) {
       fn(new Error('codesign failed ' + path.basename(src)
